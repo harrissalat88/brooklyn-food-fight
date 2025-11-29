@@ -8,6 +8,7 @@ const BrooklynFoodFight = () => {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [quickPunches, setQuickPunches] = useState([]);
   const [championRecipe, setChampionRecipe] = useState(null);
+  const [expandedChapters, setExpandedChapters] = useState({});
 
   const taglines = [
     "Recipes Ready to Rumble",
@@ -40,6 +41,7 @@ const BrooklynFoodFight = () => {
     'Breakfasty',
     'Vegetables',
     'Salad',
+    'Salads',
     'Pasta',
     'Pizza',
     'Rice-Pulses',
@@ -174,6 +176,25 @@ const BrooklynFoodFight = () => {
     setSearchTerm(term);
   };
 
+  // Toggle chapter expansion
+  const toggleChapter = (chapter) => {
+    setExpandedChapters(prev => ({
+      ...prev,
+      [chapter]: !prev[chapter]
+    }));
+  };
+
+  // Expand all chapters when searching
+  useEffect(() => {
+    if (searchTerm) {
+      const allExpanded = {};
+      Object.keys(filteredChapters).forEach(chapter => {
+        allExpanded[chapter] = true;
+      });
+      setExpandedChapters(allExpanded);
+    }
+  }, [searchTerm, filteredChapters]);
+
   // Build Google Drive link from file_id and file_type
   const getRecipeLink = (recipe) => {
     const fileId = recipe.file_id;
@@ -289,47 +310,54 @@ const BrooklynFoodFight = () => {
       {/* Chapters */}
       <main className="max-w-3xl mx-auto px-6 py-8">
         {Object.entries(filteredChapters).map(([chapter, recipes], chapterIndex) => (
-          <section key={chapter} className="mb-12">
-            {/* Chapter Header */}
-            <div className="flex items-baseline gap-4 mb-4 border-b-2 border-gray-900 pb-2">
+          <section key={chapter} className="mb-4">
+            {/* Chapter Header - Clickable */}
+            <div 
+              onClick={() => toggleChapter(chapter)}
+              className="flex items-baseline gap-4 border-b-2 border-gray-900 pb-2 cursor-pointer hover:bg-gray-50 -mx-4 px-4 py-2 transition-colors"
+            >
               <span className="text-sm font-mono text-gray-400">
                 {String(chapterIndex + 1).padStart(2, '0')}
               </span>
-              <h2 className="text-2xl font-black uppercase tracking-tight text-gray-900">
+              <h2 className="text-2xl font-black uppercase tracking-tight text-gray-900 flex-1">
                 {chapter}
               </h2>
               <span className="text-xs text-gray-400 uppercase tracking-widest">
                 {recipes.length} {recipes.length === 1 ? 'recipe' : 'recipes'}
               </span>
+              <span className="text-gray-400 text-xl transition-transform" style={{
+                transform: expandedChapters[chapter] ? 'rotate(90deg)' : 'rotate(0deg)'
+              }}>
+                →
+              </span>
             </div>
 
-            {/* Recipe List */}
-            <div className="space-y-0">
-              {recipes.map((recipe, index) => {
-                const recipeName = recipe.name || recipe.title || 'Untitled';
-                
-                return (
-                  <div 
-                    key={recipe.id || recipe.file_id || index}
-                    onClick={() => setSelectedRecipe(recipe)}
-                    className="group flex items-center gap-4 py-3 px-4 -mx-4 cursor-pointer hover:bg-gray-900 hover:text-white transition-colors"
-                  >
-                    <span className="text-xs font-mono text-gray-300 group-hover:text-gray-500 w-6">
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
-                    <span className="flex-1 font-medium">
-                      {recipeName}
-                    </span>
-                    <span className="text-xs uppercase tracking-widest text-gray-400 group-hover:text-gray-400">
-                      {recipe.cuisine_style || recipe.cuisine || ''}
-                    </span>
-                    <span className="text-gray-300 group-hover:text-white transition-colors">
-                      →
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+            {/* Recipe List - Collapsible */}
+            {expandedChapters[chapter] && (
+              <div className="space-y-0 mt-2">
+                {recipes.map((recipe, index) => {
+                  const recipeName = recipe.name || recipe.title || 'Untitled';
+                  
+                  return (
+                    <div 
+                      key={recipe.id || recipe.file_id || index}
+                      onClick={() => setSelectedRecipe(recipe)}
+                      className="group flex items-center gap-4 py-3 px-4 -mx-4 cursor-pointer hover:bg-gray-900 hover:text-white transition-colors"
+                    >
+                      <span className="text-xs font-mono text-gray-300 group-hover:text-gray-500 w-6">
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <span className="flex-1 font-medium">
+                        {recipeName}
+                      </span>
+                      <span className="text-gray-300 group-hover:text-white transition-colors">
+                        →
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </section>
         ))}
 
@@ -353,7 +381,7 @@ const BrooklynFoodFight = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">
-              {selectedRecipe.cuisine_style || selectedRecipe.cuisine || selectedRecipe.category || ''}
+              {selectedRecipe.category || ''}
             </div>
             <h3 className="text-2xl font-black text-gray-900 mb-4">
               {selectedRecipe.name || selectedRecipe.title}
