@@ -128,7 +128,7 @@ const BrooklynFoodFight = () => {
       if (recipesByChapter[chapter]) {
         const matchingRecipes = recipesByChapter[chapter].filter(r => {
           const name = (r.name || r.title || '').toLowerCase();
-          const cuisine = (r.cuisine || '').toLowerCase();
+          const cuisine = (r.cuisine_style || r.cuisine || '').toLowerCase();
           const category = (r.category || '').toLowerCase();
           const content = (r.content_preview || '').toLowerCase();
           
@@ -148,7 +148,7 @@ const BrooklynFoodFight = () => {
       if (!chapterOrder.includes(chapter) && recipesByChapter[chapter]) {
         const matchingRecipes = recipesByChapter[chapter].filter(r => {
           const name = (r.name || r.title || '').toLowerCase();
-          const cuisine = (r.cuisine || '').toLowerCase();
+          const cuisine = (r.cuisine_style || r.cuisine || '').toLowerCase();
           const category = (r.category || '').toLowerCase();
           const content = (r.content_preview || '').toLowerCase();
           
@@ -174,8 +174,23 @@ const BrooklynFoodFight = () => {
     setSearchTerm(term);
   };
 
+  // Build Google Drive link from file_id and file_type
+  const getRecipeLink = (recipe) => {
+    const fileId = recipe.file_id;
+    if (!fileId) return null;
+    
+    const fileType = recipe.file_type || '';
+    
+    if (fileType === 'Google Doc') {
+      return `https://docs.google.com/document/d/${fileId}/edit`;
+    } else {
+      // PDFs and other files
+      return `https://drive.google.com/file/d/${fileId}/view`;
+    }
+  };
+
   const openRecipe = (recipe) => {
-    const link = recipe.driveLink || recipe.link || recipe.url;
+    const link = getRecipeLink(recipe);
     if (link) {
       window.open(link, '_blank');
     }
@@ -295,7 +310,7 @@ const BrooklynFoodFight = () => {
                 
                 return (
                   <div 
-                    key={recipe.id || index}
+                    key={recipe.id || recipe.file_id || index}
                     onClick={() => setSelectedRecipe(recipe)}
                     className="group flex items-center gap-4 py-3 px-4 -mx-4 cursor-pointer hover:bg-gray-900 hover:text-white transition-colors"
                   >
@@ -306,7 +321,7 @@ const BrooklynFoodFight = () => {
                       {recipeName}
                     </span>
                     <span className="text-xs uppercase tracking-widest text-gray-400 group-hover:text-gray-400">
-                      {recipe.cuisine || ''}
+                      {recipe.cuisine_style || recipe.cuisine || ''}
                     </span>
                     <span className="text-gray-300 group-hover:text-white transition-colors">
                       →
@@ -338,7 +353,7 @@ const BrooklynFoodFight = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">
-              {selectedRecipe.cuisine || selectedRecipe.category || ''}
+              {selectedRecipe.cuisine_style || selectedRecipe.cuisine || selectedRecipe.category || ''}
             </div>
             <h3 className="text-2xl font-black text-gray-900 mb-4">
               {selectedRecipe.name || selectedRecipe.title}
