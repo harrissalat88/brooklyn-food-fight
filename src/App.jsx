@@ -25,6 +25,33 @@ const BrooklynFoodFight = () => {
     "How about 'chicken'...",
   ];
 
+  // Common cooking ingredients for Quick Punches
+  const commonIngredients = [
+    'Chicken', 'Beef', 'Pork', 'Salmon', 'Shrimp', 'Tofu',
+    'Lamb', 'Clams', 'Eggs', 'Ginger', 'Lemon',
+    'Pasta', 'Rice', 'Noodles', 'Pizza', 'Pancakes', 'Potato',
+    'Tomato', 'Mushroom', 'Spinach', 'Broccoli', 'Carrot',
+    'Cauliflower', 'Zucchini', 'Bok Choy', 'Squash',
+    'Cheese', 'Miso', 'Chocolate', 'Strawberries'
+  ];
+
+  // Custom chapter order
+  const chapterOrder = [
+    'Breakfasty',
+    'Vegetables',
+    'Salad',
+    'Pasta',
+    'Pizza',
+    'Rice-Pulses',
+    'Soup',
+    'Seafood',
+    'Poultry',
+    'Meat',
+    'Dessert-Baking',
+    'Condiments',
+    'Cocktails/Spirits'
+  ];
+
   // Group recipes by category (chapter)
   const recipesByChapter = useMemo(() => {
     const grouped = {};
@@ -35,11 +62,22 @@ const BrooklynFoodFight = () => {
       }
       grouped[chapter].push(recipe);
     });
-    // Sort chapters alphabetically
+    
+    // Sort chapters by custom order
     const sorted = {};
-    Object.keys(grouped).sort().forEach(key => {
-      sorted[key] = grouped[key];
+    chapterOrder.forEach(chapter => {
+      if (grouped[chapter]) {
+        sorted[chapter] = grouped[chapter];
+      }
     });
+    
+    // Add any chapters not in the custom order at the end (alphabetically)
+    Object.keys(grouped).sort().forEach(chapter => {
+      if (!sorted[chapter]) {
+        sorted[chapter] = grouped[chapter];
+      }
+    });
+    
     return sorted;
   }, []);
 
@@ -56,33 +94,11 @@ const BrooklynFoodFight = () => {
     }
   }, [allRecipes]);
 
-  // Calculate top ingredients and pick random 4 for compact layout
+  // Pick random 4 ingredients from common list
   useEffect(() => {
-    const ingredientCount = {};
-    allRecipes.forEach(recipe => {
-      const ingredients = recipe.ingredients || [];
-      if (Array.isArray(ingredients)) {
-        ingredients.forEach(ing => {
-          const normalized = ing.toLowerCase().trim();
-          ingredientCount[normalized] = (ingredientCount[normalized] || 0) + 1;
-        });
-      }
-    });
-
-    const topIngredients = Object.entries(ingredientCount)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 15)
-      .map(([ingredient]) => ingredient);
-
-    const shuffled = [...topIngredients].sort(() => Math.random() - 0.5);
-    const selected = shuffled.slice(0, 4);
-    
-    const formatted = selected.map(ing => 
-      ing.charAt(0).toUpperCase() + ing.slice(1)
-    );
-    
-    setQuickPunches(formatted);
-  }, [allRecipes]);
+    const shuffled = [...commonIngredients].sort(() => Math.random() - 0.5);
+    setQuickPunches(shuffled.slice(0, 4));
+  }, []);
 
   // Rotate taglines
   useEffect(() => {
@@ -100,29 +116,54 @@ const BrooklynFoodFight = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Search across name, cuisine, and ingredients
+  // Search across name, cuisine, category, and content
   const searchRecipes = (term) => {
     if (!term) return recipesByChapter;
     
     const lowerTerm = term.toLowerCase();
     
-    return Object.entries(recipesByChapter).reduce((acc, [chapter, recipes]) => {
-      const filtered = recipes.filter(r => {
-        const name = (r.name || r.title || '').toLowerCase();
-        const cuisine = (r.cuisine || '').toLowerCase();
-        const ingredients = r.ingredients || [];
-        const content = (r.content_preview || '').toLowerCase();
-        
-        return name.includes(lowerTerm) ||
-          cuisine.includes(lowerTerm) ||
-          ingredients.some(ing => ing.toLowerCase().includes(lowerTerm)) ||
-          content.includes(lowerTerm);
-      });
-      if (filtered.length > 0) {
-        acc[chapter] = filtered;
+    // Need to maintain custom order when filtering
+    const filtered = {};
+    chapterOrder.forEach(chapter => {
+      if (recipesByChapter[chapter]) {
+        const matchingRecipes = recipesByChapter[chapter].filter(r => {
+          const name = (r.name || r.title || '').toLowerCase();
+          const cuisine = (r.cuisine || '').toLowerCase();
+          const category = (r.category || '').toLowerCase();
+          const content = (r.content_preview || '').toLowerCase();
+          
+          return name.includes(lowerTerm) ||
+            cuisine.includes(lowerTerm) ||
+            category.includes(lowerTerm) ||
+            content.includes(lowerTerm);
+        });
+        if (matchingRecipes.length > 0) {
+          filtered[chapter] = matchingRecipes;
+        }
       }
-      return acc;
-    }, {});
+    });
+    
+    // Check for any chapters not in custom order
+    Object.keys(recipesByChapter).forEach(chapter => {
+      if (!chapterOrder.includes(chapter) && recipesByChapter[chapter]) {
+        const matchingRecipes = recipesByChapter[chapter].filter(r => {
+          const name = (r.name || r.title || '').toLowerCase();
+          const cuisine = (r.cuisine || '').toLowerCase();
+          const category = (r.category || '').toLowerCase();
+          const content = (r.content_preview || '').toLowerCase();
+          
+          return name.includes(lowerTerm) ||
+            cuisine.includes(lowerTerm) ||
+            category.includes(lowerTerm) ||
+            content.includes(lowerTerm);
+        });
+        if (matchingRecipes.length > 0) {
+          filtered[chapter] = matchingRecipes;
+        }
+      }
+    });
+    
+    return filtered;
   };
 
   const filteredChapters = searchRecipes(searchTerm);
@@ -131,12 +172,6 @@ const BrooklynFoodFight = () => {
 
   const handleQuickPunch = (term) => {
     setSearchTerm(term);
-  };
-
-  const getMatchedIngredient = (recipe, term) => {
-    if (!term) return null;
-    const ingredients = recipe.ingredients || [];
-    return ingredients.find(ing => ing.toLowerCase().includes(term.toLowerCase()));
   };
 
   const openRecipe = (recipe) => {
@@ -257,7 +292,6 @@ const BrooklynFoodFight = () => {
             <div className="space-y-0">
               {recipes.map((recipe, index) => {
                 const recipeName = recipe.name || recipe.title || 'Untitled';
-                const matchedIngredient = getMatchedIngredient(recipe, searchTerm);
                 
                 return (
                   <div 
@@ -270,11 +304,6 @@ const BrooklynFoodFight = () => {
                     </span>
                     <span className="flex-1 font-medium">
                       {recipeName}
-                      {matchedIngredient && (
-                        <span className="ml-2 text-xs font-normal text-gray-400 group-hover:text-gray-400">
-                          • has {matchedIngredient}
-                        </span>
-                      )}
                     </span>
                     <span className="text-xs uppercase tracking-widest text-gray-400 group-hover:text-gray-400">
                       {recipe.cuisine || ''}
@@ -314,23 +343,6 @@ const BrooklynFoodFight = () => {
             <h3 className="text-2xl font-black text-gray-900 mb-4">
               {selectedRecipe.name || selectedRecipe.title}
             </h3>
-            
-            {/* Ingredients Preview */}
-            {selectedRecipe.ingredients && selectedRecipe.ingredients.length > 0 && (
-              <div className="mb-6">
-                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Key Ingredients</p>
-                <div className="flex flex-wrap gap-2">
-                  {selectedRecipe.ingredients.slice(0, 6).map((ing, i) => (
-                    <span 
-                      key={i}
-                      className="px-2 py-1 text-xs bg-gray-100 text-gray-600"
-                    >
-                      {ing}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
 
             <div className="flex gap-3">
               <button 
